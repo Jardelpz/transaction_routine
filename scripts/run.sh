@@ -2,6 +2,6 @@
 
 set -e
 
-docker-compose up -d
+docker-compose up --build
 
 echo "running project"
