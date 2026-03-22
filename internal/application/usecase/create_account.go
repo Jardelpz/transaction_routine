@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"transaction_routine/internal/application/dto"
+	"transaction_routine/internal/domain"
 	"transaction_routine/internal/ports"
 )
 
@@ -14,6 +15,19 @@ func NewCreateAccountUseCase(accountRepo ports.AccountRepository) *CreateAccount
 	return &CreateAccountUseCase{accountRepo: accountRepo}
 }
 
-func (c *CreateAccountUseCase) Create(ctx context.Context) (*dto.AccountResponse, error) {
-	return nil, nil
+func (c *CreateAccountUseCase) Create(ctx context.Context, request dto.AccountRequest) (*dto.AccountResponse, error) {
+	err := domain.ValidateDocument(request.DocumentNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.accountRepo.Insert(ctx, request.DocumentNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AccountResponse{
+		AccountId:      response.AccountId,
+		DocumentNumber: response.DocumentNumber,
+	}, nil
 }

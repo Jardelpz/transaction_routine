@@ -2,6 +2,8 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/application/usecase"
 )
 
@@ -16,8 +18,18 @@ func NewTransactionHandler(create *usecase.CreateTransactionUseCase) *Transactio
 }
 
 func (ah *TransactionHandler) CreateTransaction(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": "CreateTransaction",
-	})
+	var reqInput dto.TransactionRequest
+	if err := c.BindJSON(&reqInput); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+	// todo req with timeout
+	response, err := ah.createTransactionUC.Create(c, reqInput)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
 
 }

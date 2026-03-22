@@ -9,7 +9,7 @@ import (
 	"transaction_routine/internal/infrastructure/database/postgres"
 	"transaction_routine/internal/infrastructure/http/handler"
 
-	infra "transaction_routine/internal/infrastructure/http"
+	router "transaction_routine/internal/infrastructure/http"
 )
 
 func init() {
@@ -25,15 +25,16 @@ func main() {
 
 	accountRepository := postgres.NewAccountRepository(dbPostgres)
 	transactionRepository := postgres.NewTransactionRepository(dbPostgres)
+	operationTypeRepository := postgres.NewOperationTypeRepository(dbPostgres)
 
 	createAccountUC := usecase.NewCreateAccountUseCase(accountRepository)
 	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepository)
-	createTransactionUC := usecase.NewCreateTransactionUseCase(transactionRepository)
+	createTransactionUC := usecase.NewCreateTransactionUseCase(transactionRepository, accountRepository, operationTypeRepository)
 
 	accountHandler := handler.NewAccountHandler(createAccountUC, retrieveAccountUC)
 	transactionHandler := handler.NewTransactionHandler(createTransactionUC)
 
-	router := infra.NewRouter(accountHandler, transactionHandler)
+	router := router.NewRouter(accountHandler, transactionHandler)
 	srv := &http.Server{
 		Addr:           ":8080",
 		Handler:        router,

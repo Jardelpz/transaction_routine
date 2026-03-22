@@ -14,6 +14,13 @@ func NewRetrieveAccountUseCase(accountRepo ports.AccountRepository) *RetrieveAcc
 	return &RetrieveAccountUseCase{accountRepo: accountRepo}
 }
 
-func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context) (*dto.AccountResponse, error) {
-	return nil, nil
+func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context, accountId int) (*dto.AccountResponse, error) {
+	account, err := c.accountRepo.GetById(ctx, accountId)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.AccountResponse{
+		AccountId:      account.AccountId,
+		DocumentNumber: account.DocumentNumber,
+	}, nil
 }

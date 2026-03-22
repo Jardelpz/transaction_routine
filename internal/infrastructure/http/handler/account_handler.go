@@ -1,8 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/application/usecase"
+	"transaction_routine/internal/domain"
 )
 
 type AccountHandler struct {
@@ -18,15 +23,37 @@ func NewAccountHandler(create *usecase.CreateAccountUseCase, retrieve *usecase.R
 }
 
 func (ah *AccountHandler) GetAccount(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": c.Param("account_id"),
-	})
+	accountId, err := strconv.Atoi(c.Param("account_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrInvalidAccountType.Error()})
+		return
+	}
 
+	account, err := ah.retrieveAccountUC.Retrieve(c, accountId)
+	if err != nil {
+		if errors.Is(err, domain.ErrAccountNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": domain.ErrAccountNotFound.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, account)
 }
 
 func (ah *AccountHandler) CreateAccount(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": "CreateAccount",
-	})
+	var reqInput dto.AccountRequest
+	if err := c.BindJSON(&reqInput); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
 
+	response, err := ah.createAccountUC.Create(c, reqInput)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
 }

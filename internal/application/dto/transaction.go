@@ -1,11 +1,9 @@
 package dto
 
-import "github.com/shopspring/decimal"
-
 type TransactionRequest struct {
-	AccountId     string          `json:"account_id"`
-	OperationType string          `json:"operation_type_id"`
-	Amount        decimal.Decimal `json:"amount"`
+	AccountId       int     `json:"account_id"`
+	OperationTypeId int     `json:"operation_type_id"`
+	Amount          float64 `json:"amount"`
 }
 
 type TransactionResponse struct {
