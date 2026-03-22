@@ -7,11 +7,12 @@ import (
 )
 
 type RetrieveAccountUseCase struct {
-	accountRepo ports.AccountRepository
+	accountRepo       ports.AccountRepository
+	documentProtector ports.DocumentProtector
 }
 
-func NewRetrieveAccountUseCase(accountRepo ports.AccountRepository) *RetrieveAccountUseCase {
-	return &RetrieveAccountUseCase{accountRepo: accountRepo}
+func NewRetrieveAccountUseCase(accountRepo ports.AccountRepository, documentProtector ports.DocumentProtector) *RetrieveAccountUseCase {
+	return &RetrieveAccountUseCase{accountRepo: accountRepo, documentProtector: documentProtector}
 }
 
 func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context, accountId int) (*dto.AccountResponse, error) {
@@ -19,8 +20,13 @@ func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context, accountId int) (*
 	if err != nil {
 		return nil, err
 	}
+
+	document, err := c.documentProtector.Decrypt(account.DocumentEncrypted)
+	if err != nil {
+		return nil, err
+	}
 	return &dto.AccountResponse{
 		AccountId:      account.AccountId,
-		DocumentNumber: account.DocumentNumber,
+		DocumentNumber: document,
 	}, nil
 }

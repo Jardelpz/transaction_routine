@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"transaction_routine/internal/application/dto"
-	"transaction_routine/internal/application/usecase/mocks"
 	"transaction_routine/internal/domain"
+	"transaction_routine/internal/application/usecase/mocks"
 )
 
 func TestCreateTransactionUseCase_Create(t *testing.T) {

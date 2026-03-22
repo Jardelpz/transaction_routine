@@ -18,20 +18,20 @@ func NewAccountRepository(db *sql.DB) *AccountRepository {
 	return &AccountRepository{db: db}
 }
 
-func (ar *AccountRepository) Insert(ctx context.Context, document string) (*domain.Account, error) {
+func (ar *AccountRepository) Insert(ctx context.Context, documentHash string, documentEncrypted string) (*domain.Account, error) {
 	var account domain.Account
 	const query = `
-					INSERT INTO accounts(document_number) 
-					VALUES ($1) 
-					RETURNING account_id, document_number
+					INSERT INTO accounts(document_hash, document_encrypted) 
+					VALUES ($1, $2) 
+					RETURNING account_id, document_hash, document_encrypted
 					`
-	err := ar.db.QueryRowContext(ctx, query, document).Scan(&account.AccountId, &account.DocumentNumber)
+	err := ar.db.QueryRowContext(ctx, query, documentHash, documentEncrypted).Scan(&account.AccountId, &account.DocumentHash, &account.DocumentEncrypted)
 
 	if err != nil {
 		var pgErr *pq.Error
 
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == PostgresDuplicatedValue {
+			if pgErr.Code == PostgresDuplicatedValue { // document_hash is unique
 				return nil, domain.ErrAccountAlreadyExists
 			}
 		}
@@ -44,14 +44,15 @@ func (ar *AccountRepository) Insert(ctx context.Context, document string) (*doma
 func (ar *AccountRepository) GetById(ctx context.Context, accountId int) (*domain.Account, error) {
 	var account domain.Account
 	const query = `
-		SELECT account_id, document_number
+		SELECT account_id, document_hash, document_encrypted
 		FROM accounts
 		WHERE account_id = $1
 	`
 
 	err := ar.db.QueryRowContext(ctx, query, accountId).Scan(
 		&account.AccountId,
-		&account.DocumentNumber,
+		&account.DocumentHash,
+		&account.DocumentEncrypted,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

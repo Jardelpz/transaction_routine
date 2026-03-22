@@ -17,6 +17,7 @@ import (
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/infrastructure/database/postgres"
 	"transaction_routine/internal/infrastructure/http/handler"
+	"transaction_routine/internal/infrastructure/security"
 )
 
 func init() {
@@ -30,12 +31,15 @@ func TestAPI_Integration(t *testing.T) {
 	}
 	defer db.Close()
 
+	protector, err := security.NewDocumentProtector()
+	require.NoError(t, err)
+
 	accountRepo := postgres.NewAccountRepository(db)
 	txRepo := postgres.NewTransactionRepository(db)
 	opTypeRepo := postgres.NewOperationTypeRepository(db)
 
-	createAccountUC := usecase.NewCreateAccountUseCase(accountRepo)
-	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepo)
+	createAccountUC := usecase.NewCreateAccountUseCase(accountRepo, protector)
+	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepo, protector)
 	createTransactionUC := usecase.NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
 
 	accountHandler := handler.NewAccountHandler(createAccountUC, retrieveAccountUC)

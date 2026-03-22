@@ -24,3 +24,8 @@ Or using Make (from `scripts/` directory):
 - `make test` - unit tests
 - `make test-integration` - integration tests
 - `make test-all` - all tests
+
+// testes
+// camada de auditoria e logs
+// encrypt document_number
+// ver como ficaria camada de cache

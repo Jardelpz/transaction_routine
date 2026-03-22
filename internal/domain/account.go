@@ -3,8 +3,9 @@ package domain
 import "unicode"
 
 type Account struct {
-	AccountId      int
-	DocumentNumber string
+	AccountId         int
+	DocumentHash      string
+	DocumentEncrypted string
 }
 
 func ValidateDocument(document string) error {

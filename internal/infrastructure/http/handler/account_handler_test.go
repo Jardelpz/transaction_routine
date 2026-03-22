@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/gin-gonic/gin"
 	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/application/usecase/mocks"
@@ -19,8 +19,13 @@ import (
 
 func setupAccountHandlers(t *testing.T) (*AccountHandler, *mocks.AccountRepositoryMock) {
 	repo := &mocks.AccountRepositoryMock{}
-	createUC := usecase.NewCreateAccountUseCase(repo)
-	retrieveUC := usecase.NewRetrieveAccountUseCase(repo)
+	protector := &mocks.DocumentProtectorMock{
+		HashFunc:    func(d string) string { return "hash-" + d },
+		EncryptFunc: func(d string) (string, error) { return "enc-" + d, nil },
+		DecryptFunc: func(c string) (string, error) { return "12345678901", nil },
+	}
+	createUC := usecase.NewCreateAccountUseCase(repo, protector)
+	retrieveUC := usecase.NewRetrieveAccountUseCase(repo, protector)
 	return NewAccountHandler(createUC, retrieveUC), repo
 }
 
@@ -29,8 +34,8 @@ func TestAccountHandler_CreateAccount(t *testing.T) {
 
 	t.Run("success - creates account", func(t *testing.T) {
 		ah, repo := setupAccountHandlers(t)
-		repo.InsertFunc = func(ctx context.Context, document string) (*domain.Account, error) {
-			return &domain.Account{AccountId: 1, DocumentNumber: document}, nil
+		repo.InsertFunc = func(ctx context.Context, hash, enc string) (*domain.Account, error) {
+			return &domain.Account{AccountId: 1, DocumentHash: hash, DocumentEncrypted: enc}, nil
 		}
 
 		body := dto.AccountRequest{DocumentNumber: "12345678901"}
@@ -51,7 +56,7 @@ func TestAccountHandler_CreateAccount(t *testing.T) {
 
 	t.Run("error - invalid document", func(t *testing.T) {
 		ah, repo := setupAccountHandlers(t)
-		repo.InsertFunc = func(ctx context.Context, document string) (*domain.Account, error) {
+		repo.InsertFunc = func(ctx context.Context, hash, enc string) (*domain.Account, error) {
 			t.Fatal("Insert should not be called")
 			return nil, nil
 		}
@@ -88,7 +93,7 @@ func TestAccountHandler_GetAccount(t *testing.T) {
 	t.Run("success - returns account", func(t *testing.T) {
 		ah, repo := setupAccountHandlers(t)
 		repo.GetByIdFunc = func(ctx context.Context, accountId int) (*domain.Account, error) {
-			return &domain.Account{AccountId: 1, DocumentNumber: "12345678901"}, nil
+			return &domain.Account{AccountId: 1, DocumentHash: "abc", DocumentEncrypted: "enc"}, nil
 		}
 
 		w := httptest.NewRecorder()

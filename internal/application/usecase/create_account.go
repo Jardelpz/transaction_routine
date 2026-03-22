@@ -8,11 +8,12 @@ import (
 )
 
 type CreateAccountUseCase struct {
-	accountRepo ports.AccountRepository
+	accountRepo       ports.AccountRepository
+	documentProtector ports.DocumentProtector
 }
 
-func NewCreateAccountUseCase(accountRepo ports.AccountRepository) *CreateAccountUseCase {
-	return &CreateAccountUseCase{accountRepo: accountRepo}
+func NewCreateAccountUseCase(accountRepo ports.AccountRepository, protector ports.DocumentProtector) *CreateAccountUseCase {
+	return &CreateAccountUseCase{accountRepo: accountRepo, documentProtector: protector}
 }
 
 func (c *CreateAccountUseCase) Create(ctx context.Context, request dto.AccountRequest) (*dto.AccountResponse, error) {
@@ -21,13 +22,23 @@ func (c *CreateAccountUseCase) Create(ctx context.Context, request dto.AccountRe
 		return nil, err
 	}
 
-	response, err := c.accountRepo.Insert(ctx, request.DocumentNumber)
+	documentHash := c.documentProtector.Hash(request.DocumentNumber)              // usado para comparações (deterministico) se o document ja existe por exemplo
+	documentEncrypted, err := c.documentProtector.Encrypt(request.DocumentNumber) // reversivel
 	if err != nil {
 		return nil, err
 	}
 
+	response, err := c.accountRepo.Insert(ctx, documentHash, documentEncrypted)
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedDocument, err := c.documentProtector.Decrypt(response.DocumentEncrypted)
+	if err != nil {
+		return nil, err
+	}
 	return &dto.AccountResponse{
 		AccountId:      response.AccountId,
-		DocumentNumber: response.DocumentNumber,
+		DocumentNumber: decryptedDocument,
 	}, nil
 }

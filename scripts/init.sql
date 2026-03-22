@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS operation_types(
 
 CREATE TABLE IF NOT EXISTS accounts(
     account_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    document_number VARCHAR(11) NOT NULL UNIQUE,
+    document_hash VARCHAR(64) NOT NULL UNIQUE,
+    document_encrypted TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

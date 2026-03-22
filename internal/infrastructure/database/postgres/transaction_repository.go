@@ -20,10 +20,6 @@ func (ar *TransactionRepository) Insert(ctx context.Context, transaction domain.
 		VALUES ($1, $2, $3, $4)
     `
 
-	err := ar.db.QueryRowContext(ctx, query, transaction.AccountId, transaction.OperationTypeId, transaction.Amount, transaction.EventDate)
-	if err != nil {
-		return err.Err()
-	}
-
-	return nil
+	_, err := ar.db.ExecContext(ctx, query, transaction.AccountId, transaction.OperationTypeId, transaction.Amount, transaction.EventDate)
+	return err
 }

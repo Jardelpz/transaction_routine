@@ -8,6 +8,7 @@ import (
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/infrastructure/database/postgres"
 	"transaction_routine/internal/infrastructure/http/handler"
+	"transaction_routine/internal/infrastructure/security"
 
 	router "transaction_routine/internal/infrastructure/http"
 )
@@ -23,12 +24,17 @@ func main() {
 	dbPostgres := postgres.ConnectionDatabase()
 	defer dbPostgres.Close()
 
+	documentProtector, err := security.NewDocumentProtector()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	accountRepository := postgres.NewAccountRepository(dbPostgres)
 	transactionRepository := postgres.NewTransactionRepository(dbPostgres)
 	operationTypeRepository := postgres.NewOperationTypeRepository(dbPostgres)
 
-	createAccountUC := usecase.NewCreateAccountUseCase(accountRepository)
-	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepository)
+	createAccountUC := usecase.NewCreateAccountUseCase(accountRepository, documentProtector)
+	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepository, documentProtector)
 	createTransactionUC := usecase.NewCreateTransactionUseCase(transactionRepository, accountRepository, operationTypeRepository)
 
 	accountHandler := handler.NewAccountHandler(createAccountUC, retrieveAccountUC)

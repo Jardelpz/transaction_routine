@@ -6,13 +6,13 @@ import (
 )
 
 type AccountRepositoryMock struct {
-	InsertFunc     func(ctx context.Context, document string) (*domain.Account, error)
+	InsertFunc     func(ctx context.Context, documentHash, documentEncrypted string) (*domain.Account, error)
 	GetByIdFunc    func(ctx context.Context, accountId int) (*domain.Account, error)
 	ExistsByIdFunc func(ctx context.Context, accountId int) (bool, error)
 }
 
-func (m *AccountRepositoryMock) Insert(ctx context.Context, document string) (*domain.Account, error) {
-	return m.InsertFunc(ctx, document)
+func (m *AccountRepositoryMock) Insert(ctx context.Context, documentHash, documentEncrypted string) (*domain.Account, error) {
+	return m.InsertFunc(ctx, documentHash, documentEncrypted)
 }
 
 func (m *AccountRepositoryMock) GetById(ctx context.Context, accountId int) (*domain.Account, error) {

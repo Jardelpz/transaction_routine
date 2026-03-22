@@ -13,15 +13,22 @@ import (
 
 func TestRetrieveAccountUseCase_Retrieve(t *testing.T) {
 	ctx := context.Background()
+	protector := &mocks.DocumentProtectorMock{
+		DecryptFunc: func(c string) (string, error) { return "12345678901", nil },
+	}
 
-	t.Run("success - returns account", func(t *testing.T) {
+	t.Run("success - returns decrypted account", func(t *testing.T) {
 		repo := &mocks.AccountRepositoryMock{
 			GetByIdFunc: func(ctx context.Context, accountId int) (*domain.Account, error) {
 				assert.Equal(t, 1, accountId)
-				return &domain.Account{AccountId: 1, DocumentNumber: "12345678901"}, nil
+				return &domain.Account{
+					AccountId:         1,
+					DocumentHash:      "abc123",
+					DocumentEncrypted: "encrypted-data",
+				}, nil
 			},
 		}
-		uc := NewRetrieveAccountUseCase(repo)
+		uc := NewRetrieveAccountUseCase(repo, protector)
 
 		resp, err := uc.Retrieve(ctx, 1)
 		require.NoError(t, err)
@@ -35,11 +42,31 @@ func TestRetrieveAccountUseCase_Retrieve(t *testing.T) {
 				return nil, domain.ErrAccountNotFound
 			},
 		}
-		uc := NewRetrieveAccountUseCase(repo)
+		uc := NewRetrieveAccountUseCase(repo, protector)
 
 		resp, err := uc.Retrieve(ctx, 999)
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 		assert.True(t, errors.Is(err, domain.ErrAccountNotFound))
+	})
+
+	t.Run("error - decrypt fails", func(t *testing.T) {
+		decProtector := &mocks.DocumentProtectorMock{
+			DecryptFunc: func(c string) (string, error) { return "", errors.New("decrypt error") },
+		}
+		repo := &mocks.AccountRepositoryMock{
+			GetByIdFunc: func(ctx context.Context, accountId int) (*domain.Account, error) {
+				return &domain.Account{
+					AccountId:         1,
+					DocumentEncrypted: "corrupted-or-wrong-key",
+				}, nil
+			},
+		}
+		uc := NewRetrieveAccountUseCase(repo, decProtector)
+
+		resp, err := uc.Retrieve(ctx, 1)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "decrypt")
 	})
 }
