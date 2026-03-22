@@ -1,8 +1,11 @@
 # transaction_routine
 
-certify your docker is running
+Ensure your Docker is running.
+
+## API Documentation (Swagger/OpenAPI)
+
+- **Swagger UI**: http://localhost:8080/swagger/index.html
+- **OpenAPI YAML**: http://localhost:8080/openapi.yaml
 
 
-
-adicionar camada de cache, como ficaria a estrutura?
 

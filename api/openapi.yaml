@@ -1,0 +1,220 @@
+openapi: 3.0.3
+info:
+  title: Transaction Routine API
+  description: API for account and financial transaction management
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+tags:
+  - name: Health
+    description: API health check
+  - name: Account
+    description: Account operations
+  - name: Transaction
+    description: Transaction operations
+
+paths:
+  /health-check:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Checks if the API is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /v1/account:
+    post:
+      tags:
+        - Account
+      summary: Create account
+      description: Creates a new account with the provided document number
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/account/{account_id}:
+    get:
+      tags:
+        - Account
+      summary: Get account
+      description: Returns account data by ID
+      operationId: getAccount
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          description: Account ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Account found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/transaction:
+    post:
+      tags:
+        - Transaction
+      summary: Create transaction
+      description: |
+        Creates a new transaction for an account.
+
+        Operation types:
+        - 1: Normal Purchase - negative amount
+        - 2: Purchase with installments - negative amount
+        - 3: Withdrawal - negative amount
+        - 4: Credit Voucher - positive amount
+
+        The amount is automatically normalized according to the operation type.
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+      responses:
+        '201':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid request (account not found, invalid operation type, or invalid amount)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: alive and kicking
+
+    AccountRequest:
+      type: object
+      required:
+        - document_number
+      properties:
+        document_number:
+          type: string
+          description: Document number (11 digits)
+          example: "12345678901"
+          minLength: 11
+          maxLength: 11
+
+    AccountResponse:
+      type: object
+      properties:
+        account_id:
+          type: integer
+          example: 1
+        document_number:
+          type: string
+          example: "12345678901"
+
+    TransactionRequest:
+      type: object
+      required:
+        - account_id
+        - operation_type_id
+        - amount
+      properties:
+        account_id:
+          type: integer
+          description: Account ID
+          example: 1
+        operation_type_id:
+          type: integer
+          description: |
+            Operation type (1-4):
+            - 1 = Normal Purchase
+            - 2 = Purchase with installments
+            - 3 = Withdrawal
+            - 4 = Credit Voucher
+          minimum: 1
+          maximum: 4
+          example: 1
+        amount:
+          type: number
+          format: double
+          description: Transaction amount (always positive in the request)
+          example: 100.50
+          minimum: 0
+          exclusiveMinimum: true
+
+    TransactionResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: created
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
