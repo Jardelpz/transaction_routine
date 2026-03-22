@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS operation_types(
 
 CREATE TABLE IF NOT EXISTS accounts(
     account_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    document_number VARCHAR(14) NOT NULL UNIQUE,
+    document_number VARCHAR(11) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS transactions(
     account_id INT NOT NULL REFERENCES accounts(account_id),
     operation_type_id SMALLINT NOT NULL REFERENCES operation_types(operation_type_id),
     amount NUMERIC(15,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    event_date TIMESTAMP
 );
 
 
