@@ -2,14 +2,15 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"transaction_routine/internal/application/dto"
-	"transaction_routine/internal/domain"
 	"transaction_routine/internal/application/usecase/mocks"
+	"transaction_routine/internal/domain"
 )
 
 func TestCreateTransactionUseCase_Create(t *testing.T) {
@@ -17,24 +18,24 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 
 	t.Run("success - creates transaction", func(t *testing.T) {
 		accountRepo := &mocks.AccountRepositoryMock{
-			ExistsByIdFunc: func(ctx context.Context, accountId int) (bool, error) {
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) {
 				return true, nil
 			},
 		}
 		opTypeRepo := &mocks.OperationTypeRepositoryMock{
-			ExistsByIDFunc: func(ctx context.Context, operationTypeID int) (bool, error) {
+			ExistsByIDFunc: func(ctx context.Context, operationTypeID int64) (bool, error) {
 				return true, nil
 			},
 		}
 		txRepo := &mocks.TransactionRepositoryMock{
 			InsertFunc: func(ctx context.Context, tx domain.Transaction) error {
-				assert.Equal(t, 1, tx.AccountId)
-				assert.Equal(t, 1, tx.OperationTypeId)
+				assert.Equal(t, int64(1), tx.AccountId)
+				assert.Equal(t, int64(1), tx.OperationTypeId)
 				assert.Equal(t, -100.50, tx.Amount)
 				return nil
 			},
 		}
-		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, noopAudit())
 
 		resp, err := uc.Create(ctx, dto.TransactionRequest{
 			AccountId:       1,
@@ -43,6 +44,41 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Equal(t, "created", resp.Status)
+	})
+
+	t.Run("success - writes audit log", func(t *testing.T) {
+		var captured domain.AuditLog
+		audit := &mocks.AuditRepositoryMock{
+			CreateFunc: func(ctx context.Context, log domain.AuditLog) error {
+				captured = log
+				return nil
+			},
+		}
+		accountRepo := &mocks.AccountRepositoryMock{
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) { return true, nil },
+		}
+		opTypeRepo := &mocks.OperationTypeRepositoryMock{
+			ExistsByIDFunc: func(ctx context.Context, operationTypeID int64) (bool, error) { return true, nil },
+		}
+		txRepo := &mocks.TransactionRepositoryMock{
+			InsertFunc: func(ctx context.Context, tx domain.Transaction) error { return nil },
+		}
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, audit)
+
+		_, err := uc.Create(ctx, dto.TransactionRequest{
+			AccountId:       5,
+			OperationTypeId: 2,
+			Amount:          10,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "transaction_created", captured.EventType)
+		assert.Equal(t, "transaction", captured.EntityType)
+		assert.Equal(t, "5", captured.EntityID)
+		require.NotEmpty(t, captured.Payload)
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(captured.Payload, &payload))
+		assert.EqualValues(t, float64(5), payload["account_id"])
+		assert.EqualValues(t, float64(2), payload["operation_type_id"])
 	})
 
 	t.Run("error - invalid amount zero", func(t *testing.T) {
@@ -54,7 +90,7 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, noopAudit())
 
 		resp, err := uc.Create(ctx, dto.TransactionRequest{
 			AccountId:       1,
@@ -68,7 +104,7 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 
 	t.Run("error - account not found", func(t *testing.T) {
 		accountRepo := &mocks.AccountRepositoryMock{
-			ExistsByIdFunc: func(ctx context.Context, accountId int) (bool, error) {
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) {
 				return false, nil
 			},
 		}
@@ -79,7 +115,7 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, noopAudit())
 
 		resp, err := uc.Create(ctx, dto.TransactionRequest{
 			AccountId:       999,
@@ -93,12 +129,12 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 
 	t.Run("error - operation type not found", func(t *testing.T) {
 		accountRepo := &mocks.AccountRepositoryMock{
-			ExistsByIdFunc: func(ctx context.Context, accountId int) (bool, error) {
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) {
 				return true, nil
 			},
 		}
 		opTypeRepo := &mocks.OperationTypeRepositoryMock{
-			ExistsByIDFunc: func(ctx context.Context, operationTypeID int) (bool, error) {
+			ExistsByIDFunc: func(ctx context.Context, operationTypeID int64) (bool, error) {
 				return false, nil
 			},
 		}
@@ -108,7 +144,7 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, noopAudit())
 
 		resp, err := uc.Create(ctx, dto.TransactionRequest{
 			AccountId:       1,
@@ -122,12 +158,12 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 
 	t.Run("success - credit voucher keeps positive amount", func(t *testing.T) {
 		accountRepo := &mocks.AccountRepositoryMock{
-			ExistsByIdFunc: func(ctx context.Context, accountId int) (bool, error) {
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) {
 				return true, nil
 			},
 		}
 		opTypeRepo := &mocks.OperationTypeRepositoryMock{
-			ExistsByIDFunc: func(ctx context.Context, operationTypeID int) (bool, error) {
+			ExistsByIDFunc: func(ctx context.Context, operationTypeID int64) (bool, error) {
 				return true, nil
 			},
 		}
@@ -138,7 +174,7 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, noopAudit())
 
 		resp, err := uc.Create(ctx, dto.TransactionRequest{
 			AccountId:       1,
@@ -148,5 +184,31 @@ func TestCreateTransactionUseCase_Create(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "created", resp.Status)
 		assert.Equal(t, 50.25, capturedTx.Amount)
+	})
+
+	t.Run("success - audit failure does not fail request", func(t *testing.T) {
+		audit := &mocks.AuditRepositoryMock{
+			CreateFunc: func(ctx context.Context, log domain.AuditLog) error {
+				return errors.New("audit error")
+			},
+		}
+		accountRepo := &mocks.AccountRepositoryMock{
+			ExistsByIdFunc: func(ctx context.Context, accountId int64) (bool, error) { return true, nil },
+		}
+		opTypeRepo := &mocks.OperationTypeRepositoryMock{
+			ExistsByIDFunc: func(ctx context.Context, operationTypeID int64) (bool, error) { return true, nil },
+		}
+		txRepo := &mocks.TransactionRepositoryMock{
+			InsertFunc: func(ctx context.Context, tx domain.Transaction) error { return nil },
+		}
+		uc := NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, audit)
+
+		resp, err := uc.Create(ctx, dto.TransactionRequest{
+			AccountId:       1,
+			OperationTypeId: 1,
+			Amount:          10,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "created", resp.Status)
 	})
 }

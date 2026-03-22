@@ -4,14 +4,26 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"transaction_routine/internal/domain"
 	"transaction_routine/internal/infrastructure/security"
 )
+
+var integrationDocSeq atomic.Int64
+
+// uniqueTestDocument returns an 11-digit string valid for domain.ValidateDocument (repeated runs / shared DB).
+func uniqueTestDocument(t *testing.T) string {
+	t.Helper()
+	n := integrationDocSeq.Add(1) + time.Now().UnixNano()
+	return fmt.Sprintf("%011d", n%100_000_000_000)
+}
 
 func setupProtector(t *testing.T) *security.DocumentProtector {
 	t.Helper()
@@ -34,7 +46,7 @@ func TestAccountRepository_Integration(t *testing.T) {
 	protector := setupProtector(t)
 
 	t.Run("Insert and GetById", func(t *testing.T) {
-		doc := "98765432100"
+		doc := uniqueTestDocument(t)
 		hash := protector.Hash(doc)
 		encrypted, err := protector.Encrypt(doc)
 		require.NoError(t, err)
@@ -42,7 +54,7 @@ func TestAccountRepository_Integration(t *testing.T) {
 		account, err := repo.Insert(ctx, hash, encrypted)
 		require.NoError(t, err)
 		require.NotNil(t, account)
-		assert.Greater(t, account.AccountId, 0)
+		assert.Greater(t, account.AccountId, int64(0))
 		assert.Equal(t, hash, account.DocumentHash)
 
 		fetched, err := repo.GetById(ctx, account.AccountId)
@@ -56,7 +68,7 @@ func TestAccountRepository_Integration(t *testing.T) {
 	})
 
 	t.Run("Insert duplicate document returns ErrAccountAlreadyExists", func(t *testing.T) {
-		const doc = "11111111111"
+		doc := uniqueTestDocument(t)
 		hash := protector.Hash(doc)
 		encrypted, _ := protector.Encrypt(doc)
 
@@ -73,7 +85,7 @@ func TestAccountRepository_Integration(t *testing.T) {
 	})
 
 	t.Run("ExistsById", func(t *testing.T) {
-		doc := "22222222222"
+		doc := uniqueTestDocument(t)
 		hash := protector.Hash(doc)
 		encrypted, _ := protector.Encrypt(doc)
 		account, err := repo.Insert(ctx, hash, encrypted)

@@ -17,6 +17,7 @@ import (
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/infrastructure/database/postgres"
 	"transaction_routine/internal/infrastructure/http/handler"
+	"transaction_routine/internal/infrastructure/logger"
 	"transaction_routine/internal/infrastructure/security"
 )
 
@@ -37,15 +38,17 @@ func TestAPI_Integration(t *testing.T) {
 	accountRepo := postgres.NewAccountRepository(db)
 	txRepo := postgres.NewTransactionRepository(db)
 	opTypeRepo := postgres.NewOperationTypeRepository(db)
+	auditRepo := postgres.NewAuditRepository(db)
 
-	createAccountUC := usecase.NewCreateAccountUseCase(accountRepo, protector)
+	createAccountUC := usecase.NewCreateAccountUseCase(accountRepo, protector, auditRepo)
 	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepo, protector)
-	createTransactionUC := usecase.NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+	createTransactionUC := usecase.NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, auditRepo)
 
 	accountHandler := handler.NewAccountHandler(createAccountUC, retrieveAccountUC)
 	transactionHandler := handler.NewTransactionHandler(createTransactionUC)
 
-	router := NewRouter(accountHandler, transactionHandler)
+	appLogger := logger.NewSlog()
+	router := NewRouter(accountHandler, transactionHandler, appLogger)
 
 	t.Run("full flow: create account, get account, create transaction", func(t *testing.T) {
 		doc := "55555555555"

@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
 	"time"
 	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/domain"
@@ -12,13 +14,15 @@ type CreateTransactionUseCase struct {
 	transactionRepo   ports.TransactionRepository
 	accountRepository ports.AccountRepository
 	operationTypeRepo ports.OperationTypeRepository
+	auditRepo         ports.AuditRepository
 }
 
-func NewCreateTransactionUseCase(transactionRepo ports.TransactionRepository, accountRepository ports.AccountRepository, operationTypeRepo ports.OperationTypeRepository) *CreateTransactionUseCase {
+func NewCreateTransactionUseCase(transactionRepo ports.TransactionRepository, accountRepository ports.AccountRepository, operationTypeRepo ports.OperationTypeRepository, auditRepo ports.AuditRepository) *CreateTransactionUseCase {
 	return &CreateTransactionUseCase{
 		transactionRepo:   transactionRepo,
 		accountRepository: accountRepository,
 		operationTypeRepo: operationTypeRepo,
+		auditRepo:         auditRepo,
 	}
 }
 
@@ -56,5 +60,19 @@ func (ct *CreateTransactionUseCase) Create(ctx context.Context, input dto.Transa
 		return nil, err
 	}
 
+	payload, err := json.Marshal(map[string]any{
+		"account_id":        tx.AccountId,
+		"operation_type_id": tx.OperationTypeId,
+		"amount":            tx.Amount,
+		"event_date":        tx.EventDate,
+	})
+	if err == nil {
+		_ = ct.auditRepo.Create(ctx, domain.AuditLog{
+			EventType:  "transaction_created",
+			EntityType: "transaction",
+			EntityID:   strconv.FormatInt(tx.AccountId, 10),
+			Payload:    payload,
+		})
+	}
 	return &dto.TransactionResponse{Status: "created"}, nil
 }

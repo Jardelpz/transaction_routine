@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/gin-gonic/gin"
 	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/application/usecase/mocks"
@@ -24,7 +24,8 @@ func setupAccountHandlers(t *testing.T) (*AccountHandler, *mocks.AccountReposito
 		EncryptFunc: func(d string) (string, error) { return "enc-" + d, nil },
 		DecryptFunc: func(c string) (string, error) { return "12345678901", nil },
 	}
-	createUC := usecase.NewCreateAccountUseCase(repo, protector)
+	audit := &mocks.AuditRepositoryMock{}
+	createUC := usecase.NewCreateAccountUseCase(repo, protector, audit)
 	retrieveUC := usecase.NewRetrieveAccountUseCase(repo, protector)
 	return NewAccountHandler(createUC, retrieveUC), repo
 }
@@ -50,7 +51,7 @@ func TestAccountHandler_CreateAccount(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 		var resp dto.AccountResponse
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-		assert.Equal(t, 1, resp.AccountId)
+		assert.Equal(t, int64(1), resp.AccountId)
 		assert.Equal(t, "12345678901", resp.DocumentNumber)
 	})
 
@@ -92,7 +93,7 @@ func TestAccountHandler_GetAccount(t *testing.T) {
 
 	t.Run("success - returns account", func(t *testing.T) {
 		ah, repo := setupAccountHandlers(t)
-		repo.GetByIdFunc = func(ctx context.Context, accountId int) (*domain.Account, error) {
+		repo.GetByIdFunc = func(ctx context.Context, accountId int64) (*domain.Account, error) {
 			return &domain.Account{AccountId: 1, DocumentHash: "abc", DocumentEncrypted: "enc"}, nil
 		}
 
@@ -106,13 +107,13 @@ func TestAccountHandler_GetAccount(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		var resp dto.AccountResponse
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-		assert.Equal(t, 1, resp.AccountId)
+		assert.Equal(t, int64(1), resp.AccountId)
 		assert.Equal(t, "12345678901", resp.DocumentNumber)
 	})
 
 	t.Run("error - account not found", func(t *testing.T) {
 		ah, repo := setupAccountHandlers(t)
-		repo.GetByIdFunc = func(ctx context.Context, accountId int) (*domain.Account, error) {
+		repo.GetByIdFunc = func(ctx context.Context, accountId int64) (*domain.Account, error) {
 			return nil, domain.ErrAccountNotFound
 		}
 

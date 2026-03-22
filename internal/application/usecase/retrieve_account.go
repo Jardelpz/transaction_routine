@@ -15,7 +15,7 @@ func NewRetrieveAccountUseCase(accountRepo ports.AccountRepository, documentProt
 	return &RetrieveAccountUseCase{accountRepo: accountRepo, documentProtector: documentProtector}
 }
 
-func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context, accountId int) (*dto.AccountResponse, error) {
+func (c *RetrieveAccountUseCase) Retrieve(ctx context.Context, accountId int64) (*dto.AccountResponse, error) {
 	account, err := c.accountRepo.GetById(ctx, accountId)
 	if err != nil {
 		return nil, err

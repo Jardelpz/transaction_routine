@@ -21,7 +21,7 @@ func TestOperationTypeRepository_Integration(t *testing.T) {
 	repo := NewOperationTypeRepository(db)
 
 	t.Run("ExistsByID - existing types", func(t *testing.T) {
-		for _, id := range []int{1, 2, 3, 4} {
+		for _, id := range []int64{1, 2, 3, 4} {
 			exists, err := repo.ExistsByID(ctx, id)
 			require.NoError(t, err)
 			assert.True(t, exists, "operation type %d should exist", id)

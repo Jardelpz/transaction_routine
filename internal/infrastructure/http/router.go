@@ -4,15 +4,17 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"log/slog"
 	"transaction_routine/api"
 	"transaction_routine/internal/infrastructure/http/handler"
+	"transaction_routine/internal/infrastructure/http/middleware"
 )
 
-func NewRouter(accountHandler *handler.AccountHandler, transactionHandler *handler.TransactionHandler) *gin.Engine {
+func NewRouter(accountHandler *handler.AccountHandler, transactionHandler *handler.TransactionHandler, logger *slog.Logger) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
-	// middleware
+	r.Use(middleware.Logging(logger))
 
 	// OpenAPI spec (YAML)
 	r.GET("/openapi.yaml", func(c *gin.Context) {

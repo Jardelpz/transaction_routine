@@ -3,7 +3,7 @@ package domain
 import "unicode"
 
 type Account struct {
-	AccountId         int
+	AccountId         int64
 	DocumentHash      string
 	DocumentEncrypted string
 }

@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
 	"transaction_routine/internal/application/dto"
 	"transaction_routine/internal/domain"
 	"transaction_routine/internal/ports"
@@ -10,10 +12,15 @@ import (
 type CreateAccountUseCase struct {
 	accountRepo       ports.AccountRepository
 	documentProtector ports.DocumentProtector
+	auditRepo         ports.AuditRepository
 }
 
-func NewCreateAccountUseCase(accountRepo ports.AccountRepository, protector ports.DocumentProtector) *CreateAccountUseCase {
-	return &CreateAccountUseCase{accountRepo: accountRepo, documentProtector: protector}
+func NewCreateAccountUseCase(accountRepo ports.AccountRepository, protector ports.DocumentProtector, auditRepo ports.AuditRepository) *CreateAccountUseCase {
+	return &CreateAccountUseCase{
+		accountRepo:       accountRepo,
+		documentProtector: protector,
+		auditRepo:         auditRepo,
+	}
 }
 
 func (c *CreateAccountUseCase) Create(ctx context.Context, request dto.AccountRequest) (*dto.AccountResponse, error) {
@@ -36,6 +43,19 @@ func (c *CreateAccountUseCase) Create(ctx context.Context, request dto.AccountRe
 	decryptedDocument, err := c.documentProtector.Decrypt(response.DocumentEncrypted)
 	if err != nil {
 		return nil, err
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"account_id":         response.AccountId,
+		"document_encrypted": documentEncrypted,
+	})
+	if err == nil {
+		_ = c.auditRepo.Create(ctx, domain.AuditLog{
+			EventType:  "account_created",
+			EntityType: "account",
+			EntityID:   strconv.FormatInt(response.AccountId, 10),
+			Payload:    payload,
+		})
 	}
 	return &dto.AccountResponse{
 		AccountId:      response.AccountId,

@@ -41,7 +41,7 @@ func (ar *AccountRepository) Insert(ctx context.Context, documentHash string, do
 	return &account, nil
 }
 
-func (ar *AccountRepository) GetById(ctx context.Context, accountId int) (*domain.Account, error) {
+func (ar *AccountRepository) GetById(ctx context.Context, accountId int64) (*domain.Account, error) {
 	var account domain.Account
 	const query = `
 		SELECT account_id, document_hash, document_encrypted
@@ -65,7 +65,7 @@ func (ar *AccountRepository) GetById(ctx context.Context, accountId int) (*domai
 	return &account, nil
 }
 
-func (ar *AccountRepository) ExistsById(ctx context.Context, accountId int) (bool, error) {
+func (ar *AccountRepository) ExistsById(ctx context.Context, accountId int64) (bool, error) {
 	var exists bool
 	const query = `
         SELECT EXISTS (

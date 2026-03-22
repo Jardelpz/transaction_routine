@@ -21,7 +21,8 @@ func setupTransactionHandler(t *testing.T) (*TransactionHandler, *mocks.AccountR
 	accountRepo := &mocks.AccountRepositoryMock{}
 	opTypeRepo := &mocks.OperationTypeRepositoryMock{}
 	txRepo := &mocks.TransactionRepositoryMock{}
-	uc := usecase.NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo)
+	audit := &mocks.AuditRepositoryMock{}
+	uc := usecase.NewCreateTransactionUseCase(txRepo, accountRepo, opTypeRepo, audit)
 	return NewTransactionHandler(uc), accountRepo, opTypeRepo, txRepo
 }
 
@@ -30,8 +31,8 @@ func TestTransactionHandler_CreateTransaction(t *testing.T) {
 
 	t.Run("success - creates transaction", func(t *testing.T) {
 		th, accountRepo, opTypeRepo, txRepo := setupTransactionHandler(t)
-		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int) (bool, error) { return true, nil }
-		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int) (bool, error) { return true, nil }
+		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int64) (bool, error) { return true, nil }
+		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int64) (bool, error) { return true, nil }
 		txRepo.InsertFunc = func(ctx context.Context, tx domain.Transaction) error { return nil }
 
 		body := dto.TransactionRequest{
@@ -55,8 +56,8 @@ func TestTransactionHandler_CreateTransaction(t *testing.T) {
 
 	t.Run("error - invalid amount zero", func(t *testing.T) {
 		th, accountRepo, opTypeRepo, _ := setupTransactionHandler(t)
-		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int) (bool, error) { return true, nil }
-		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int) (bool, error) { return true, nil }
+		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int64) (bool, error) { return true, nil }
+		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int64) (bool, error) { return true, nil }
 
 		body := dto.TransactionRequest{
 			AccountId:       1,
@@ -76,8 +77,8 @@ func TestTransactionHandler_CreateTransaction(t *testing.T) {
 
 	t.Run("error - account not found", func(t *testing.T) {
 		th, accountRepo, opTypeRepo, _ := setupTransactionHandler(t)
-		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int) (bool, error) { return false, nil }
-		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int) (bool, error) { return true, nil }
+		accountRepo.ExistsByIdFunc = func(ctx context.Context, accountId int64) (bool, error) { return false, nil }
+		opTypeRepo.ExistsByIDFunc = func(ctx context.Context, id int64) (bool, error) { return true, nil }
 
 		body := dto.TransactionRequest{
 			AccountId:       999,

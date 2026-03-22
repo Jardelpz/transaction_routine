@@ -13,7 +13,7 @@ func NewOperationTypeRepository(db *sql.DB) *OperationTypeRepository {
 	return &OperationTypeRepository{db: db}
 }
 
-func (or *OperationTypeRepository) ExistsByID(ctx context.Context, operationTypeID int) (bool, error) {
+func (or *OperationTypeRepository) ExistsByID(ctx context.Context, operationTypeID int64) (bool, error) {
 	var exists bool
 	const query = `
         SELECT EXISTS (

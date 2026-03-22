@@ -5,6 +5,6 @@ type AccountRequest struct {
 }
 
 type AccountResponse struct {
-	AccountId      int    `json:"account_id"`
+	AccountId      int64  `json:"account_id"`
 	DocumentNumber string `json:"document_number"`
 }

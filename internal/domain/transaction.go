@@ -6,14 +6,14 @@ import (
 )
 
 type Transaction struct {
-	TransactionId   int
-	AccountId       int
-	OperationTypeId int
+	TransactionId   int64
+	AccountId       int64
+	OperationTypeId int64
 	Amount          float64
 	EventDate       time.Time
 }
 
-func NormalizeAmount(operationType int, amount float64) float64 {
+func NormalizeAmount(operationType int64, amount float64) float64 {
 	var value = math.Abs(amount)
 
 	switch operationType {

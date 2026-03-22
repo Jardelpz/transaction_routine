@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS transactions(
     event_date TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+    audit_id BIGSERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id VARCHAR(50) NOT NULL,
+    payload JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 INSERT INTO operation_types(operation_type_id, description) VALUES
     (1, 'Normal Purchase'),
@@ -27,8 +35,6 @@ INSERT INTO operation_types(operation_type_id, description) VALUES
     (3, 'Withdrawal'),
     (4, 'Credit Voucher')
 ;
-
--- criar tabela de auditoria
 
 SELECT 'ending execution';
 

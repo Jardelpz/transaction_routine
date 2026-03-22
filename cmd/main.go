@@ -8,6 +8,7 @@ import (
 	"transaction_routine/internal/application/usecase"
 	"transaction_routine/internal/infrastructure/database/postgres"
 	"transaction_routine/internal/infrastructure/http/handler"
+	"transaction_routine/internal/infrastructure/logger"
 	"transaction_routine/internal/infrastructure/security"
 
 	router "transaction_routine/internal/infrastructure/http"
@@ -32,18 +33,20 @@ func main() {
 	accountRepository := postgres.NewAccountRepository(dbPostgres)
 	transactionRepository := postgres.NewTransactionRepository(dbPostgres)
 	operationTypeRepository := postgres.NewOperationTypeRepository(dbPostgres)
+	auditRepository := postgres.NewAuditRepository(dbPostgres)
 
-	createAccountUC := usecase.NewCreateAccountUseCase(accountRepository, documentProtector)
+	createAccountUC := usecase.NewCreateAccountUseCase(accountRepository, documentProtector, auditRepository)
 	retrieveAccountUC := usecase.NewRetrieveAccountUseCase(accountRepository, documentProtector)
-	createTransactionUC := usecase.NewCreateTransactionUseCase(transactionRepository, accountRepository, operationTypeRepository)
+	createTransactionUC := usecase.NewCreateTransactionUseCase(transactionRepository, accountRepository, operationTypeRepository, auditRepository)
 
 	accountHandler := handler.NewAccountHandler(createAccountUC, retrieveAccountUC)
 	transactionHandler := handler.NewTransactionHandler(createTransactionUC)
 
-	router := router.NewRouter(accountHandler, transactionHandler)
+	appLogger := logger.NewSlog()
+	appRouter := router.NewRouter(accountHandler, transactionHandler, appLogger)
 	srv := &http.Server{
 		Addr:           ":8080",
-		Handler:        router,
+		Handler:        appRouter,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
 		MaxHeaderBytes: 1 << 20,
@@ -54,5 +57,5 @@ func main() {
 		log.Fatalf("server error: %v", err)
 	}
 
-	router.Run()
+	appRouter.Run()
 }

@@ -8,7 +8,7 @@ import (
 func TestNormalizeAmount(t *testing.T) {
 	tests := []struct {
 		name        string
-		opType      int
+		opType      int64
 		amount      float64
 		want        float64
 		description string

@@ -23,7 +23,7 @@ func NewAccountHandler(create *usecase.CreateAccountUseCase, retrieve *usecase.R
 }
 
 func (ah *AccountHandler) GetAccount(c *gin.Context) {
-	accountId, err := strconv.Atoi(c.Param("account_id"))
+	accountId, err := strconv.ParseInt(c.Param("account_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrInvalidAccountType.Error()})
 		return

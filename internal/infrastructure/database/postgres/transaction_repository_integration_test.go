@@ -30,7 +30,7 @@ func TestTransactionRepository_Integration(t *testing.T) {
 	txRepo := NewTransactionRepository(db)
 
 	t.Run("Insert transaction", func(t *testing.T) {
-		doc := "33333333333"
+		doc := uniqueTestDocument(t)
 		hash := protector.Hash(doc)
 		encrypted, err := protector.Encrypt(doc)
 		require.NoError(t, err)
