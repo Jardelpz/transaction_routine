@@ -106,7 +106,3 @@ scripts/            # database initialization scripts
 docker-compose.yml  # container orchestration
 Dockerfile          # application container
 ```
-
----
-
-
