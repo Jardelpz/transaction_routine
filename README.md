@@ -91,7 +91,7 @@ Common commands:
 ```bash
 make up        # start application with Docker
 make down      # stop containers
-make build     # build application
+make reset     # build application
 make test      # run tests
 ```
 
